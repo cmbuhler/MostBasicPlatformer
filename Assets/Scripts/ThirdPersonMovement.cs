@@ -26,8 +26,16 @@ public class ThirdPersonMovement : MonoBehaviour
         float vertical = Input.GetAxisRaw("Vertical");
 
         Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
-        Vector3 moveDirection = new Vector3(0f, 0f, 0f);
+        float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
+
+        Move(targetAngle, direction.magnitude >= 0.05f);
+        Rotate(targetAngle);
+    }
+
+    void Move(float targetAngle, bool toMove)
+    {
         bool jump = Input.GetKeyDown("space");
+
         if (controller.isGrounded)
         {
             vSpeed = 0;
@@ -36,30 +44,19 @@ public class ThirdPersonMovement : MonoBehaviour
                 vSpeed = jumpSpeed;
             }
         }
-        if (!controller.isGrounded)
-        {
-            //apply Gravity
-            vSpeed -= gravity + Time.deltaTime;
-        }
+        else vSpeed -= gravity * Time.deltaTime;
 
-        if (direction.magnitude >= 0.1f)
-        {
-            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
-            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSpeedTime);
-            transform.rotation = Quaternion.Euler(0f, angle, 0f);
+        Vector3 gravityMove = new Vector3(0f, vSpeed, 0f);
+        Vector3 move;
+        if (toMove) move = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+        else move = new Vector3(0f, 0f, 0f);
 
-            moveDirection = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;  
-        }
+        controller.Move(move.normalized * speed * Time.deltaTime + gravityMove * Time.deltaTime);
+    }
 
-        Vector3 vel;
-        if (vSpeed != 0)
-        {
-            vel = (moveDirection.normalized * speed * Time.deltaTime) + (Vector3.up * vSpeed * Time.deltaTime);
-        } else
-        {
-            vel = (moveDirection.normalized * speed * Time.deltaTime);
-        }
-
-        controller.Move(vel);
+    void Rotate(float targetAngle)
+    {
+        float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSpeedTime);
+        transform.rotation = Quaternion.Euler(0f, angle, 0f);
     }
 }
